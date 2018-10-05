@@ -1,11 +1,12 @@
-// Copyright (c) 2011-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2017 The Bitcoin Core developers
+// Copyright (c) 2018-2018 The VERGE Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <qt/transactionview.h>
 
 #include <qt/addresstablemodel.h>
-#include <qt/bitcoinunits.h>
+#include <qt/vergeunits.h>
 #include <qt/csvmodelwriter.h>
 #include <qt/editaddressdialog.h>
 #include <qt/optionsmodel.h>
@@ -95,17 +96,21 @@ TransactionView::TransactionView(const PlatformStyle *platformStyle, QWidget *pa
     hlayout->addWidget(typeWidget);
 
     search_widget = new QLineEdit(this);
+#if QT_VERSION >= 0x040700
     search_widget->setPlaceholderText(tr("Enter address, transaction id, or label to search"));
+#endif
     hlayout->addWidget(search_widget);
 
     amountWidget = new QLineEdit(this);
+#if QT_VERSION >= 0x040700
     amountWidget->setPlaceholderText(tr("Min amount"));
+#endif
     if (platformStyle->getUseExtraSpacing()) {
         amountWidget->setFixedWidth(97);
     } else {
         amountWidget->setFixedWidth(100);
     }
-    amountWidget->setValidator(new QDoubleValidator(0, 1e20, 8, this));
+    amountWidget->setValidator(new QDoubleValidator(0, 1e20, 6, this));
     hlayout->addWidget(amountWidget);
 
     // Delay before filtering transactions in ms
@@ -332,7 +337,7 @@ void TransactionView::changedAmount()
     if(!transactionProxyModel)
         return;
     CAmount amount_parsed = 0;
-    if (BitcoinUnits::parse(model->getOptionsModel()->getDisplayUnit(), amountWidget->text(), &amount_parsed)) {
+    if (VERGEUnits::parse(model->getOptionsModel()->getDisplayUnit(), amountWidget->text(), &amount_parsed)) {
         transactionProxyModel->setMinAmount(amount_parsed);
     }
     else
@@ -366,7 +371,7 @@ void TransactionView::exportClicked()
     writer.addColumn(tr("Type"), TransactionTableModel::Type, Qt::EditRole);
     writer.addColumn(tr("Label"), 0, TransactionTableModel::LabelRole);
     writer.addColumn(tr("Address"), 0, TransactionTableModel::AddressRole);
-    writer.addColumn(BitcoinUnits::getAmountColumnTitle(model->getOptionsModel()->getDisplayUnit()), 0, TransactionTableModel::FormattedAmountRole);
+    writer.addColumn(VERGEUnits::getAmountColumnTitle(model->getOptionsModel()->getDisplayUnit()), 0, TransactionTableModel::FormattedAmountRole);
     writer.addColumn(tr("ID"), 0, TransactionTableModel::TxHashRole);
 
     if(!writer.write()) {

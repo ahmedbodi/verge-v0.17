@@ -1,4 +1,5 @@
-// Copyright (c) 2011-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2017 The Bitcoin Core developers
+// Copyright (c) 2018-2018 The VERGE Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -18,7 +19,7 @@
 #include <util.h>
 #include <utilstrencodings.h>
 
-#include <test/test_bitcoin.h>
+#include <test/test_verge.h>
 
 #include <memory>
 
@@ -99,7 +100,7 @@ static bool TestSequenceLocks(const CTransaction &tx, int flags)
 // Test suite for ancestor feerate transaction selection.
 // Implemented as an additional function, rather than a separate test case,
 // to allow reusing the blockchain created in CreateNewBlock_validity.
-static void TestPackageSelection(const CChainParams& chainparams, const CScript& scriptPubKey, const std::vector<CTransactionRef>& txFirst) EXCLUSIVE_LOCKS_REQUIRED(::mempool.cs)
+static void TestPackageSelection(const CChainParams& chainparams, CScript scriptPubKey, std::vector<CTransactionRef>& txFirst)
 {
     // Test the ancestor feerate transaction selection.
     TestMemPoolEntryHelper entry;
@@ -173,7 +174,7 @@ static void TestPackageSelection(const CChainParams& chainparams, const CScript&
     tx.vin[0].prevout.hash = txFirst[2]->GetHash();
     tx.vout.resize(2);
     tx.vout[0].nValue = 5000000000LL - 100000000;
-    tx.vout[1].nValue = 100000000; // 1BTC output
+    tx.vout[1].nValue = 100000000; // 1XVG output
     uint256 hashFreeTx2 = tx.GetHash();
     mempool.addUnchecked(hashFreeTx2, entry.Fee(0).SpendsCoinbase(true).FromTx(tx));
 
@@ -209,7 +210,7 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
     const CChainParams& chainparams = *chainParams;
     CScript scriptPubKey = CScript() << ParseHex("04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f") << OP_CHECKSIG;
     std::unique_ptr<CBlockTemplate> pblocktemplate;
-    CMutableTransaction tx;
+    CMutableTransaction tx,tx2;
     CScript script;
     uint256 hash;
     TestMemPoolEntryHelper entry;
@@ -253,7 +254,6 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
     }
 
     LOCK(cs_main);
-    LOCK(::mempool.cs);
 
     // Just to make sure we can still make simple blocks
     BOOST_CHECK(pblocktemplate = AssemblerForTest(chainparams).CreateNewBlock(scriptPubKey));

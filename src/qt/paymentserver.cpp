@@ -1,10 +1,11 @@
-// Copyright (c) 2011-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2017 The Bitcoin Core developers
+// Copyright (c) 2018-2018 The VERGE Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <qt/paymentserver.h>
 
-#include <qt/bitcoinunits.h>
+#include <qt/vergeunits.h>
 #include <qt/guiutil.h>
 #include <qt/optionsmodel.h>
 
@@ -41,17 +42,22 @@
 #include <QSslSocket>
 #include <QStringList>
 #include <QTextDocument>
-#include <QUrlQuery>
 
-const int BITCOIN_IPC_CONNECT_TIMEOUT = 1000; // milliseconds
-const QString BITCOIN_IPC_PREFIX("bitcoin:");
+#if QT_VERSION < 0x050000
+#include <QUrl>
+#else
+#include <QUrlQuery>
+#endif
+
+const int VERGE_IPC_CONNECT_TIMEOUT = 1000; // milliseconds
+const QString VERGE_IPC_PREFIX("verge:");
 // BIP70 payment protocol messages
 const char* BIP70_MESSAGE_PAYMENTACK = "PaymentACK";
 const char* BIP70_MESSAGE_PAYMENTREQUEST = "PaymentRequest";
 // BIP71 payment protocol media types
-const char* BIP71_MIMETYPE_PAYMENT = "application/bitcoin-payment";
-const char* BIP71_MIMETYPE_PAYMENTACK = "application/bitcoin-paymentack";
-const char* BIP71_MIMETYPE_PAYMENTREQUEST = "application/bitcoin-paymentrequest";
+const char* BIP71_MIMETYPE_PAYMENT = "application/verge-payment";
+const char* BIP71_MIMETYPE_PAYMENTACK = "application/verge-paymentack";
+const char* BIP71_MIMETYPE_PAYMENTREQUEST = "application/verge-paymentrequest";
 
 struct X509StoreDeleter {
       void operator()(X509_STORE* b) {
@@ -75,7 +81,7 @@ namespace // Anon namespace
 //
 static QString ipcServerName()
 {
-    QString name("BitcoinQt");
+    QString name("VERGEQt");
 
     // Append a simple hash of the datadir
     // Note that GetDataDir(true) returns a different path
@@ -95,7 +101,11 @@ static QList<QString> savedPaymentRequests;
 
 static void ReportInvalidCertificate(const QSslCertificate& cert)
 {
+#if QT_VERSION < 0x050000
+    qDebug() << QString("%1: Payment server found an invalid certificate: ").arg(__func__) << cert.serialNumber() << cert.subjectInfo(QSslCertificate::CommonName) << cert.subjectInfo(QSslCertificate::OrganizationalUnitName);
+#else
     qDebug() << QString("%1: Payment server found an invalid certificate: ").arg(__func__) << cert.serialNumber() << cert.subjectInfo(QSslCertificate::CommonName) << cert.subjectInfo(QSslCertificate::DistinguishedNameQualifier) << cert.subjectInfo(QSslCertificate::OrganizationalUnitName);
+#endif
 }
 
 //
@@ -148,11 +158,13 @@ void PaymentServer::LoadRootCAs(X509_STORE* _store)
             continue;
         }
 
+#if QT_VERSION >= 0x050000
         // Blacklisted certificate
         if (cert.isBlacklisted()) {
             ReportInvalidCertificate(cert);
             continue;
         }
+#endif
         QByteArray certData = cert.toDer();
         const unsigned char *data = (const unsigned char *)certData.data();
 
@@ -198,16 +210,16 @@ void PaymentServer::ipcParseCommandLine(interfaces::Node& node, int argc, char* 
         if (arg.startsWith("-"))
             continue;
 
-        // If the bitcoin: URI contains a payment request, we are not able to detect the
+        // If the verge: URI contains a payment request, we are not able to detect the
         // network as that would require fetching and parsing the payment request.
         // That means clicking such an URI which contains a testnet payment request
         // will start a mainnet instance and throw a "wrong network" error.
-        if (arg.startsWith(BITCOIN_IPC_PREFIX, Qt::CaseInsensitive)) // bitcoin: URI
+        if (arg.startsWith(VERGE_IPC_PREFIX, Qt::CaseInsensitive)) // verge: URI
         {
             savedPaymentRequests.append(arg);
 
             SendCoinsRecipient r;
-            if (GUIUtil::parseBitcoinURI(arg, &r) && !r.address.isEmpty())
+            if (GUIUtil::parseVERGEURI(arg, &r) && !r.address.isEmpty())
             {
                 auto tempChainParams = CreateChainParams(CBaseChainParams::MAIN);
 
@@ -260,7 +272,7 @@ bool PaymentServer::ipcSendCommandLine()
     {
         QLocalSocket* socket = new QLocalSocket();
         socket->connectToServer(ipcServerName(), QIODevice::WriteOnly);
-        if (!socket->waitForConnected(BITCOIN_IPC_CONNECT_TIMEOUT))
+        if (!socket->waitForConnected(VERGE_IPC_CONNECT_TIMEOUT))
         {
             delete socket;
             socket = nullptr;
@@ -275,7 +287,7 @@ bool PaymentServer::ipcSendCommandLine()
 
         socket->write(block);
         socket->flush();
-        socket->waitForBytesWritten(BITCOIN_IPC_CONNECT_TIMEOUT);
+        socket->waitForBytesWritten(VERGE_IPC_CONNECT_TIMEOUT);
         socket->disconnectFromServer();
 
         delete socket;
@@ -298,7 +310,7 @@ PaymentServer::PaymentServer(QObject* parent, bool startLocalServer) :
     GOOGLE_PROTOBUF_VERIFY_VERSION;
 
     // Install global event filter to catch QFileOpenEvents
-    // on Mac: sent when you click bitcoin: links
+    // on Mac: sent when you click verge: links
     // other OSes: helpful when dealing with payment request files
     if (parent)
         parent->installEventFilter(this);
@@ -315,7 +327,7 @@ PaymentServer::PaymentServer(QObject* parent, bool startLocalServer) :
         if (!uriServer->listen(name)) {
             // constructor is called early in init, so don't use "Q_EMIT message()" here
             QMessageBox::critical(0, tr("Payment request error"),
-                tr("Cannot start bitcoin: click-to-pay handler"));
+                tr("Cannot start verge: click-to-pay handler"));
         }
         else {
             connect(uriServer, SIGNAL(newConnection()), this, SLOT(handleURIConnection()));
@@ -330,7 +342,7 @@ PaymentServer::~PaymentServer()
 }
 
 //
-// OSX-specific way of handling bitcoin: URIs and PaymentRequest mime types.
+// OSX-specific way of handling verge: URIs and PaymentRequest mime types.
 // Also used by paymentservertests.cpp and when opening a payment request file
 // via "Open URI..." menu entry.
 //
@@ -355,7 +367,7 @@ void PaymentServer::initNetManager()
         return;
     delete netManager;
 
-    // netManager is used to fetch paymentrequests given in bitcoin: URIs
+    // netManager is used to fetch paymentrequests given in verge: URIs
     netManager = new QNetworkAccessManager(this);
 
     QNetworkProxy proxy;
@@ -395,14 +407,18 @@ void PaymentServer::handleURIOrFile(const QString& s)
         return;
     }
 
-    if (s.startsWith("bitcoin://", Qt::CaseInsensitive))
+    if (s.startsWith("verge://", Qt::CaseInsensitive))
     {
-        Q_EMIT message(tr("URI handling"), tr("'bitcoin://' is not a valid URI. Use 'bitcoin:' instead."),
+        Q_EMIT message(tr("URI handling"), tr("'verge://' is not a valid URI. Use 'verge:' instead."),
             CClientUIInterface::MSG_ERROR);
     }
-    else if (s.startsWith(BITCOIN_IPC_PREFIX, Qt::CaseInsensitive)) // bitcoin: URI
+    else if (s.startsWith(VERGE_IPC_PREFIX, Qt::CaseInsensitive)) // verge: URI
     {
+#if QT_VERSION < 0x050000
+        QUrl uri(s);
+#else
         QUrlQuery uri((QUrl(s)));
+#endif
         if (uri.hasQueryItem("r")) // payment request URI
         {
             QByteArray temp;
@@ -428,7 +444,7 @@ void PaymentServer::handleURIOrFile(const QString& s)
         else // normal URI
         {
             SendCoinsRecipient recipient;
-            if (GUIUtil::parseBitcoinURI(s, &recipient))
+            if (GUIUtil::parseVERGEURI(s, &recipient))
             {
                 if (!IsValidDestinationString(recipient.address.toStdString())) {
                     Q_EMIT message(tr("URI handling"), tr("Invalid payment address %1").arg(recipient.address),
@@ -439,7 +455,7 @@ void PaymentServer::handleURIOrFile(const QString& s)
             }
             else
                 Q_EMIT message(tr("URI handling"),
-                    tr("URI cannot be parsed! This can be caused by an invalid Bitcoin address or malformed URI parameters."),
+                    tr("URI cannot be parsed! This can be caused by an invalid VERGE address or malformed URI parameters."),
                     CClientUIInterface::ICON_WARNING);
 
             return;
@@ -551,7 +567,7 @@ bool PaymentServer::processPaymentRequest(const PaymentRequestPlus& request, Sen
             addresses.append(QString::fromStdString(EncodeDestination(dest)));
         }
         else if (!recipient.authenticatedMerchant.isEmpty()) {
-            // Unauthenticated payment requests to custom bitcoin addresses are not supported
+            // Unauthenticated payment requests to custom verge addresses are not supported
             // (there is no good way to tell the user where they are paying in a way they'd
             // have a chance of understanding).
             Q_EMIT message(tr("Payment request rejected"),
@@ -560,7 +576,7 @@ bool PaymentServer::processPaymentRequest(const PaymentRequestPlus& request, Sen
             return false;
         }
 
-        // Bitcoin amounts are stored as (optional) uint64 in the protobuf messages (see paymentrequest.proto),
+        // VERGE amounts are stored as (optional) uint64 in the protobuf messages (see paymentrequest.proto),
         // but CAmount is defined as int64_t. Because of that we need to verify that amounts are in a valid range
         // and no overflow has happened.
         if (!verifyAmount(sendingTo.second)) {
@@ -572,7 +588,7 @@ bool PaymentServer::processPaymentRequest(const PaymentRequestPlus& request, Sen
         CTxOut txOut(sendingTo.second, sendingTo.first);
         if (IsDust(txOut, optionsModel->node().getDustRelayFee())) {
             Q_EMIT message(tr("Payment request error"), tr("Requested payment amount of %1 is too small (considered dust).")
-                .arg(BitcoinUnits::formatWithUnit(optionsModel->getDisplayUnit(), sendingTo.second)),
+                .arg(VERGEUnits::formatWithUnit(optionsModel->getDisplayUnit(), sendingTo.second)),
                 CClientUIInterface::MSG_ERROR);
 
             return false;

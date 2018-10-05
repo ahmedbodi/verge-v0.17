@@ -1,24 +1,57 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2017 The Bitcoin Core developers
+// Copyright (c) 2018-2018 The VERGE Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_CHAIN_H
-#define BITCOIN_CHAIN_H
+#ifndef VERGE_CHAIN_H
+#define VERGE_CHAIN_H
 
 #include <arith_uint256.h>
 #include <consensus/params.h>
 #include <primitives/block.h>
 #include <tinyformat.h>
 #include <uint256.h>
+#include <util.h>
 
 #include <vector>
+
+
+inline int GetTargetSpacing(int Height, bool fProofOfStake=false)
+{
+    if(gArgs.GetChainName() == "test")
+        return 225;
+    if(fProofOfStake)
+        return 45;
+    else
+    {
+        if (Height < 370000){ // FIXME: Formalize these numbers
+            return 15;//15/5 = 3sec
+        }else{
+            return 225;//225/5 = 45sec
+        }
+    }
+}
+
+inline int CalculateAvgBlockTimeForHeight(int nHeight){
+    if (nHeight < 1) nHeight = 1;
+    int result = (370000 * 3 + (nHeight - 370000) * 45)/nHeight;
+    if (result < 1) result = GetTargetSpacing(nHeight);
+    return result;
+}
+
 
 /**
  * Maximum amount of time that a block timestamp is allowed to exceed the
  * current network-adjusted time before the block will be accepted.
  */
 static const int64_t MAX_FUTURE_BLOCK_TIME = 2 * 60 * 60;
+
+inline int64_t GetMaxClockDrift(int Height){
+    if (Height < 660000 || (Height < 817500 && Height > 800000))
+        return MAX_FUTURE_BLOCK_TIME;
+    return 10 * 60;
+}
 
 /**
  * Timestamp window used as a grace period by code that compares external
@@ -293,6 +326,25 @@ public:
     {
         return *phashBlock;
     }
+    
+    int GetAlgo() const
+    {
+        switch (nVersion & BLOCK_VERSION_ALGO)
+        {
+            case BLOCK_VERSION_SCRYPT:
+                return ALGO_SCRYPT;
+            case BLOCK_VERSION_GROESTL:
+                return ALGO_GROESTL;
+            case BLOCK_VERSION_LYRA2RE:
+                return ALGO_LYRA2RE;
+			case BLOCK_VERSION_BLAKE:
+                return ALGO_BLAKE;
+            case BLOCK_VERSION_X17:
+                return ALGO_X17;
+        }
+        //printf("CBlock::GetAlgo(): Can't Parse Algo, %d, %d, %d\n", nVersion & BLOCK_VERSION_ALGO, nVersion, this->nVersion);
+        return ALGO_SCRYPT;
+    }
 
     int64_t GetBlockTime() const
     {
@@ -491,4 +543,4 @@ public:
     CBlockIndex* FindEarliestAtLeast(int64_t nTime) const;
 };
 
-#endif // BITCOIN_CHAIN_H
+#endif // VERGE_CHAIN_H

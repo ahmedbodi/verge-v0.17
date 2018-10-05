@@ -1,4 +1,5 @@
-// Copyright (c) 2011-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2017 The Bitcoin Core developers
+// Copyright (c) 2018-2018 The VERGE Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -164,7 +165,7 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
             total += subtotal;
         }
         else
-        {   // User-entered bitcoin address / amount:
+        {   // User-entered verge address / amount:
             if(!validateAddress(rcp.address))
             {
                 return InvalidAddress;
@@ -247,7 +248,7 @@ WalletModel::SendCoinsReturn WalletModel::sendCoins(WalletModelTransaction &tran
                 rcp.paymentRequest.SerializeToString(&value);
                 vOrderForm.emplace_back("PaymentRequest", std::move(value));
             }
-            else if (!rcp.message.isEmpty()) // Message from normal bitcoin:URI (bitcoin:123...?message=example)
+            else if (!rcp.message.isEmpty()) // Message from normal verge:URI (verge:123...?message=example)
                 vOrderForm.emplace_back("Message", rcp.message.toStdString());
         }
 
@@ -364,12 +365,6 @@ bool WalletModel::changePassphrase(const SecureString &oldPass, const SecureStri
 }
 
 // Handlers for core signals
-static void NotifyUnload(WalletModel* walletModel)
-{
-    qDebug() << "NotifyUnload";
-    QMetaObject::invokeMethod(walletModel, "unload", Qt::QueuedConnection);
-}
-
 static void NotifyKeyStoreStatusChanged(WalletModel *walletmodel)
 {
     qDebug() << "NotifyKeyStoreStatusChanged";
@@ -417,7 +412,6 @@ static void NotifyWatchonlyChanged(WalletModel *walletmodel, bool fHaveWatchonly
 void WalletModel::subscribeToCoreSignals()
 {
     // Connect signals to wallet
-    m_handler_unload = m_wallet->handleUnload(boost::bind(&NotifyUnload, this));
     m_handler_status_changed = m_wallet->handleStatusChanged(boost::bind(&NotifyKeyStoreStatusChanged, this));
     m_handler_address_book_changed = m_wallet->handleAddressBookChanged(boost::bind(NotifyAddressBookChanged, this, _1, _2, _3, _4, _5));
     m_handler_transaction_changed = m_wallet->handleTransactionChanged(boost::bind(NotifyTransactionChanged, this, _1, _2));
@@ -428,7 +422,6 @@ void WalletModel::subscribeToCoreSignals()
 void WalletModel::unsubscribeFromCoreSignals()
 {
     // Disconnect signals from wallet
-    m_handler_unload->disconnect();
     m_handler_status_changed->disconnect();
     m_handler_address_book_changed->disconnect();
     m_handler_transaction_changed->disconnect();
@@ -513,15 +506,15 @@ bool WalletModel::bumpFee(uint256 hash)
     questionString.append("<tr><td>");
     questionString.append(tr("Current fee:"));
     questionString.append("</td><td>");
-    questionString.append(BitcoinUnits::formatHtmlWithUnit(getOptionsModel()->getDisplayUnit(), old_fee));
+    questionString.append(VERGEUnits::formatHtmlWithUnit(getOptionsModel()->getDisplayUnit(), old_fee));
     questionString.append("</td></tr><tr><td>");
     questionString.append(tr("Increase:"));
     questionString.append("</td><td>");
-    questionString.append(BitcoinUnits::formatHtmlWithUnit(getOptionsModel()->getDisplayUnit(), new_fee - old_fee));
+    questionString.append(VERGEUnits::formatHtmlWithUnit(getOptionsModel()->getDisplayUnit(), new_fee - old_fee));
     questionString.append("</td></tr><tr><td>");
     questionString.append(tr("New fee:"));
     questionString.append("</td><td>");
-    questionString.append(BitcoinUnits::formatHtmlWithUnit(getOptionsModel()->getDisplayUnit(), new_fee));
+    questionString.append(VERGEUnits::formatHtmlWithUnit(getOptionsModel()->getDisplayUnit(), new_fee));
     questionString.append("</td></tr></table>");
     SendConfirmationDialog confirmationDialog(tr("Confirm fee bump"), questionString);
     confirmationDialog.exec();
@@ -556,11 +549,6 @@ bool WalletModel::bumpFee(uint256 hash)
 bool WalletModel::isWalletEnabled()
 {
    return !gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET);
-}
-
-bool WalletModel::privateKeysDisabled() const
-{
-    return m_wallet->IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS);
 }
 
 QString WalletModel::getWalletName() const

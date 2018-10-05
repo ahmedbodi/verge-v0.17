@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2017 The Bitcoin Core developers
+// Copyright (c) 2018-2018 The VERGE Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -46,8 +47,8 @@ int64_t UpdateTime(CBlockHeader* pblock, const Consensus::Params& consensusParam
         pblock->nTime = nNewTime;
 
     // Updating time can change work required on testnet:
-    if (consensusParams.fPowAllowMinDifficultyBlocks)
-        pblock->nBits = GetNextWorkRequired(pindexPrev, pblock, consensusParams);
+    // if (consensusParams.fPowAllowMinDifficultyBlocks)
+    //     pblock->nBits = GetNextWorkRequired(pindexPrev, pblock, algo, consensusParams);
 
     return nNewTime - nOldTime;
 }
@@ -64,7 +65,7 @@ BlockAssembler::BlockAssembler(const CChainParams& params, const Options& option
     nBlockMaxWeight = std::max<size_t>(4000, std::min<size_t>(MAX_BLOCK_WEIGHT - 4000, options.nBlockMaxWeight));
 }
 
-static BlockAssembler::Options DefaultOptions()
+static BlockAssembler::Options DefaultOptions(const CChainParams& params)
 {
     // Block resource limits
     // If -blockmaxweight is not given, limit to DEFAULT_BLOCK_MAX_WEIGHT
@@ -80,7 +81,7 @@ static BlockAssembler::Options DefaultOptions()
     return options;
 }
 
-BlockAssembler::BlockAssembler(const CChainParams& params) : BlockAssembler(params, DefaultOptions()) {}
+BlockAssembler::BlockAssembler(const CChainParams& params) : BlockAssembler(params, DefaultOptions(params)) {}
 
 void BlockAssembler::resetBlock()
 {
@@ -96,7 +97,7 @@ void BlockAssembler::resetBlock()
     nFees = 0;
 }
 
-std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx)
+std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn,  int algo, bool fMineWitnessTx)
 {
     int64_t nTimeStart = GetTimeMicros();
 
@@ -124,6 +125,31 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     if (chainparams.MineBlocksOnDemand())
         pblock->nVersion = gArgs.GetArg("-blockversion", pblock->nVersion);
 
+    switch (algo)
+    {
+	    case ALGO_LYRA2RE:
+	        pblock->nVersion |= BLOCK_VERSION_LYRA2RE;
+            break;
+        case ALGO_SCRYPT:
+            pblock->nVersion |= BLOCK_VERSION_SCRYPT;
+            break;
+        case ALGO_GROESTL:
+            pblock->nVersion |= BLOCK_VERSION_GROESTL;
+            break;
+        case ALGO_X17:
+            pblock->nVersion |= BLOCK_VERSION_X17;
+            break;
+        case ALGO_BLAKE:
+            pblock->nVersion |= BLOCK_VERSION_BLAKE;
+            break;
+        default:
+            error("CreateNewBlock: bad algo");
+            return NULL;
+   }
+
+    if (nExpired)
+        return nullptr;
+
     pblock->nTime = GetAdjustedTime();
     const int64_t nMedianTimePast = pindexPrev->GetMedianTimePast();
 
@@ -133,11 +159,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     // Decide whether to include witness transactions
     // This is only needed in case the witness softfork activation is reverted
-    // (which would require a very deep reorganization).
-    // Note that the mempool would accept transactions with witness data before
-    // IsWitnessEnabled, but we would only ever mine blocks after IsWitnessEnabled
-    // unless there is a massive block reorganization with the witness softfork
-    // not activated.
+    // (which would require a very deep reorganization) or when
+    // -promiscuousmempoolflags is used.
     // TODO: replace this with a call to main to assess validity of a mempool
     // transaction (which in most cases can be a no-op).
     fIncludeWitness = IsWitnessEnabled(pindexPrev, chainparams.GetConsensus()) && fMineWitnessTx;
@@ -168,7 +191,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     // Fill in header
     pblock->hashPrevBlock  = pindexPrev->GetBlockHash();
     UpdateTime(pblock, chainparams.GetConsensus(), pindexPrev);
-    pblock->nBits          = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus());
+    pblock->nBits          = GetNextWorkRequired(pindexPrev, pblock, algo, chainparams.GetConsensus());
     pblock->nNonce         = 0;
     pblocktemplate->vTxSigOpsCost[0] = WITNESS_SCALE_FACTOR * GetLegacySigOpCount(*pblock->vtx[0]);
 
@@ -212,7 +235,7 @@ bool BlockAssembler::TestPackage(uint64_t packageSize, int64_t packageSigOpsCost
 //   segwit activation)
 bool BlockAssembler::TestPackageTransactions(const CTxMemPool::setEntries& package)
 {
-    for (CTxMemPool::txiter it : package) {
+    for (const CTxMemPool::txiter it : package) {
         if (!IsFinalTx(it->GetTx(), nHeight, nLockTimeCutoff))
             return false;
         if (!fIncludeWitness && it->GetTx().HasWitness())
@@ -244,7 +267,7 @@ int BlockAssembler::UpdatePackagesForAdded(const CTxMemPool::setEntries& already
         indexed_modified_transaction_set &mapModifiedTx)
 {
     int nDescendantsUpdated = 0;
-    for (CTxMemPool::txiter it : alreadyAdded) {
+    for (const CTxMemPool::txiter it : alreadyAdded) {
         CTxMemPool::setEntries descendants;
         mempool.CalculateDescendants(it, descendants);
         // Insert all descendants (not yet in block) into the modified set

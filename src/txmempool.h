@@ -1,10 +1,11 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2017 The Bitcoin Core developers
+// Copyright (c) 2018-2018 The VERGE Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_TXMEMPOOL_H
-#define BITCOIN_TXMEMPOOL_H
+#ifndef VERGE_TXMEMPOOL_H
+#define VERGE_TXMEMPOOL_H
 
 #include <memory>
 #include <set>
@@ -486,7 +487,7 @@ public:
     mutable CCriticalSection cs;
     indexed_transaction_set mapTx GUARDED_BY(cs);
 
-    using txiter = indexed_transaction_set::nth_index<0>::type::const_iterator;
+    typedef indexed_transaction_set::nth_index<0>::type::iterator txiter;
     std::vector<std::pair<uint256, txiter> > vTxHashes; //!< All tx witness hashes/entries in mapTx, in random order
 
     struct CompareIteratorByHash {
@@ -539,12 +540,12 @@ public:
     // Note that addUnchecked is ONLY called from ATMP outside of tests
     // and any other callers may break wallet's in-mempool tracking (due to
     // lack of CValidationInterface::TransactionAddedToMempool callbacks).
-    void addUnchecked(const uint256& hash, const CTxMemPoolEntry& entry, bool validFeeEstimate = true) EXCLUSIVE_LOCKS_REQUIRED(cs);
-    void addUnchecked(const uint256& hash, const CTxMemPoolEntry& entry, setEntries& setAncestors, bool validFeeEstimate = true) EXCLUSIVE_LOCKS_REQUIRED(cs);
+    bool addUnchecked(const uint256& hash, const CTxMemPoolEntry &entry, bool validFeeEstimate = true);
+    bool addUnchecked(const uint256& hash, const CTxMemPoolEntry &entry, setEntries &setAncestors, bool validFeeEstimate = true);
 
     void removeRecursive(const CTransaction &tx, MemPoolRemovalReason reason = MemPoolRemovalReason::UNKNOWN);
     void removeForReorg(const CCoinsViewCache *pcoins, unsigned int nMemPoolHeight, int flags);
-    void removeConflicts(const CTransaction &tx) EXCLUSIVE_LOCKS_REQUIRED(cs);
+    void removeConflicts(const CTransaction &tx);
     void removeForBlock(const std::vector<CTransactionRef>& vtx, unsigned int nBlockHeight);
 
     void clear();
@@ -596,7 +597,7 @@ public:
      *  fSearchForParents = whether to search a tx's vin for in-mempool parents, or
      *    look up parents from mapLinks. Must be true for entries not in the mempool
      */
-    bool CalculateMemPoolAncestors(const CTxMemPoolEntry& entry, setEntries& setAncestors, uint64_t limitAncestorCount, uint64_t limitAncestorSize, uint64_t limitDescendantCount, uint64_t limitDescendantSize, std::string& errString, bool fSearchForParents = true) const EXCLUSIVE_LOCKS_REQUIRED(cs);
+    bool CalculateMemPoolAncestors(const CTxMemPoolEntry &entry, setEntries &setAncestors, uint64_t limitAncestorCount, uint64_t limitAncestorSize, uint64_t limitDescendantCount, uint64_t limitDescendantSize, std::string &errString, bool fSearchForParents = true) const;
 
     /** Populate setDescendants with all in-mempool descendants of hash.
      *  Assumes that setDescendants includes all in-mempool descendants of anything
@@ -692,7 +693,7 @@ private:
     void removeUnchecked(txiter entry, MemPoolRemovalReason reason = MemPoolRemovalReason::UNKNOWN) EXCLUSIVE_LOCKS_REQUIRED(cs);
 };
 
-/**
+/** 
  * CCoinsView that brings transactions from a mempool into view.
  * It does not check for spendings by memory pool transactions.
  * Instead, it provides access to all Coins which are either unspent in the
@@ -804,4 +805,4 @@ struct DisconnectedBlockTransactions {
     }
 };
 
-#endif // BITCOIN_TXMEMPOOL_H
+#endif // VERGE_TXMEMPOOL_H

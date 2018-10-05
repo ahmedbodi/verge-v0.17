@@ -1,4 +1,5 @@
-// Copyright (c) 2011-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2017 The Bitcoin Core developers
+// Copyright (c) 2018-2018 The VERGE Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -53,7 +54,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                 sub.involvesWatchAddress = mine & ISMINE_WATCH_ONLY;
                 if (wtx.txout_address_is_mine[i])
                 {
-                    // Received by Bitcoin Address
+                    // Received by VERGE Address
                     sub.type = TransactionRecord::RecvWithAddress;
                     sub.address = EncodeDestination(wtx.txout_address[i]);
                 }
@@ -122,7 +123,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
 
                 if (!boost::get<CNoDestination>(&wtx.txout_address[nOut]))
                 {
-                    // Sent to Bitcoin Address
+                    // Sent to VERGE Address
                     sub.type = TransactionRecord::SendToAddress;
                     sub.address = EncodeDestination(wtx.txout_address[nOut]);
                 }
@@ -195,6 +196,10 @@ void TransactionRecord::updateStatus(const interfaces::WalletTxStatus& wtx, int 
             if (wtx.is_in_main_chain)
             {
                 status.matures_in = wtx.blocks_to_maturity;
+
+                // Check if the block was requested by anyone
+                if (adjustedTime - wtx.time_received > 2 * 60 && wtx.request_count == 0)
+                    status.status = TransactionStatus::MaturesWarning;
             }
             else
             {
@@ -211,6 +216,10 @@ void TransactionRecord::updateStatus(const interfaces::WalletTxStatus& wtx, int 
         if (status.depth < 0)
         {
             status.status = TransactionStatus::Conflicted;
+        }
+        else if (adjustedTime - wtx.time_received > 2 * 60 && wtx.request_count == 0)
+        {
+            status.status = TransactionStatus::Offline;
         }
         else if (status.depth == 0)
         {

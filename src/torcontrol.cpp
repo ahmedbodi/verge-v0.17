@@ -1,4 +1,5 @@
-// Copyright (c) 2015-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2017 The Bitcoin Core developers
+// Copyright (c) 2018-2018 The VERGE Core developers
 // Copyright (c) 2017 The Zcash developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
@@ -91,7 +92,7 @@ public:
     /**
      * Disconnect from Tor control port.
      */
-    void Disconnect();
+    bool Disconnect();
 
     /** Send a command, register a handler for the reply.
      * A trailing CRLF is automatically added.
@@ -223,11 +224,12 @@ bool TorControlConnection::Connect(const std::string &target, const ConnectionCB
     return true;
 }
 
-void TorControlConnection::Disconnect()
+bool TorControlConnection::Disconnect()
 {
     if (b_conn)
         bufferevent_free(b_conn);
     b_conn = nullptr;
+    return true;
 }
 
 bool TorControlConnection::Command(const std::string &cmd, const ReplyHandlerCB& reply_handler)
@@ -402,7 +404,7 @@ static bool WriteBinaryFile(const fs::path &filename, const std::string &data)
     return true;
 }
 
-/****** Bitcoin specific TorController implementation ********/
+/****** VERGE specific TorController implementation ********/
 
 /** Controller that connects to Tor control socket, authenticate, then create
  * and maintain an ephemeral hidden service.
@@ -527,8 +529,8 @@ void TorController::auth_cb(TorControlConnection& _conn, const TorControlReply& 
         if (gArgs.GetArg("-onion", "") == "") {
             CService resolved(LookupNumeric("127.0.0.1", 9050));
             proxyType addrOnion = proxyType(resolved, true);
-            SetProxy(NET_ONION, addrOnion);
-            SetLimited(NET_ONION, false);
+            SetProxy(NET_TOR, addrOnion);
+            SetLimited(NET_TOR, false);
         }
 
         // Finally - now create the service

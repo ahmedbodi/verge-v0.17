@@ -1,16 +1,16 @@
-// Copyright (c) 2011-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2017 The Bitcoin Core developers
+// Copyright (c) 2018-2018 The VERGE Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_QT_GUIUTIL_H
-#define BITCOIN_QT_GUIUTIL_H
+#ifndef VERGE_QT_GUIUTIL_H
+#define VERGE_QT_GUIUTIL_H
 
 #include <amount.h>
 #include <fs.h>
 
 #include <QEvent>
 #include <QHeaderView>
-#include <QItemDelegate>
 #include <QMessageBox>
 #include <QObject>
 #include <QProgressBar>
@@ -35,7 +35,7 @@ class QUrl;
 class QWidget;
 QT_END_NAMESPACE
 
-/** Utility functions used by the Bitcoin Qt UI.
+/** Utility functions used by the VERGE Qt UI.
  */
 namespace GUIUtil
 {
@@ -49,10 +49,10 @@ namespace GUIUtil
     // Set up widget for address
     void setupAddressWidget(QValidatedLineEdit *widget, QWidget *parent);
 
-    // Parse "bitcoin:" URI into recipient object, return true on successful parsing
-    bool parseBitcoinURI(const QUrl &uri, SendCoinsRecipient *out);
-    bool parseBitcoinURI(QString uri, SendCoinsRecipient *out);
-    QString formatBitcoinURI(const SendCoinsRecipient &info);
+    // Parse "verge:" URI into recipient object, return true on successful parsing
+    bool parseVERGEURI(const QUrl &uri, SendCoinsRecipient *out);
+    bool parseVERGEURI(QString uri, SendCoinsRecipient *out);
+    QString formatVERGEURI(const SendCoinsRecipient &info);
 
     // Returns true if given address+amount meets "dust" definition
     bool isDust(interfaces::Node& node, const QString& address, const CAmount& amount);
@@ -119,7 +119,10 @@ namespace GUIUtil
     void openDebugLogfile();
 
     // Open the config file
-    bool openBitcoinConf();
+    bool openVERGEConf();
+
+    // Replace invalid default fonts with known good ones
+    void SubstituteFonts(const QString& language);
 
     /** Qt event filter that intercepts ToolTipChange events, and replaces the tooltip with a rich text
       representation if needed. This assures that Qt can word-wrap long tooltip messages.
@@ -217,11 +220,11 @@ namespace GUIUtil
     protected:
         void mouseReleaseEvent(QMouseEvent *event);
     };
-
+    
     class ClickableProgressBar : public QProgressBar
     {
         Q_OBJECT
-
+        
     Q_SIGNALS:
         /** Emitted when the progressbar is clicked. The relative mouse coordinates of the click are
          * passed to the signal.
@@ -231,20 +234,20 @@ namespace GUIUtil
         void mouseReleaseEvent(QMouseEvent *event);
     };
 
-    typedef ClickableProgressBar ProgressBar;
-
-    class ItemDelegate : public QItemDelegate
+#if defined(Q_OS_MAC) && QT_VERSION >= 0x050000
+    // workaround for Qt OSX Bug:
+    // https://bugreports.qt-project.org/browse/QTBUG-15631
+    // QProgressBar uses around 10% CPU even when app is in background
+    class ProgressBar : public ClickableProgressBar
     {
-        Q_OBJECT
-    public:
-        ItemDelegate(QObject* parent) : QItemDelegate(parent) {}
-
-    Q_SIGNALS:
-        void keyEscapePressed();
-
-    private:
-        bool eventFilter(QObject *object, QEvent *event);
+        bool event(QEvent *e) {
+            return (e->type() != QEvent::StyleAnimationUpdate) ? QProgressBar::event(e) : false;
+        }
     };
+#else
+    typedef ClickableProgressBar ProgressBar;
+#endif
+
 } // namespace GUIUtil
 
-#endif // BITCOIN_QT_GUIUTIL_H
+#endif // VERGE_QT_GUIUTIL_H

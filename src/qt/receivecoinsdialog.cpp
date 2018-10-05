@@ -1,4 +1,5 @@
-// Copyright (c) 2011-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2017 The Bitcoin Core developers
+// Copyright (c) 2018-2018 The VERGE Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -9,7 +10,7 @@
 
 #include <qt/addressbookpage.h>
 #include <qt/addresstablemodel.h>
-#include <qt/bitcoinunits.h>
+#include <qt/vergeunits.h>
 #include <qt/optionsmodel.h>
 #include <qt/platformstyle.h>
 #include <qt/receiverequestdialog.h>
@@ -99,9 +100,6 @@ void ReceiveCoinsDialog::setModel(WalletModel *_model)
         } else {
             ui->useBech32->setCheckState(Qt::Unchecked);
         }
-
-        // eventually disable the main receive button if private key operations are disabled
-        ui->receiveButton->setEnabled(!model->privateKeysDisabled());
     }
 }
 
@@ -272,7 +270,7 @@ void ReceiveCoinsDialog::copyURI()
     }
 
     const RecentRequestsTableModel * const submodel = model->getRecentRequestsTableModel();
-    const QString uri = GUIUtil::formatBitcoinURI(submodel->entry(sel.row()).recipient);
+    const QString uri = GUIUtil::formatVERGEURI(submodel->entry(sel.row()).recipient);
     GUIUtil::setClipboard(uri);
 }
 

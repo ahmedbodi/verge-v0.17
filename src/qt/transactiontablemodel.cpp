@@ -1,4 +1,5 @@
-// Copyright (c) 2011-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2017 The Bitcoin Core developers
+// Copyright (c) 2018-2018 The VERGE Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -223,7 +224,7 @@ TransactionTableModel::TransactionTableModel(const PlatformStyle *_platformStyle
         fProcessingQueuedTransactions(false),
         platformStyle(_platformStyle)
 {
-    columns << QString() << QString() << tr("Date") << tr("Type") << tr("Label") << BitcoinUnits::getAmountColumnTitle(walletModel->getOptionsModel()->getDisplayUnit());
+    columns << QString() << QString() << tr("Date") << tr("Type") << tr("Label") << VERGEUnits::getAmountColumnTitle(walletModel->getOptionsModel()->getDisplayUnit());
     priv->refreshWallet(walletModel->wallet());
 
     connect(walletModel->getOptionsModel(), SIGNAL(displayUnitChanged(int)), this, SLOT(updateDisplayUnit()));
@@ -240,7 +241,7 @@ TransactionTableModel::~TransactionTableModel()
 /** Updates the column title to "Amount (DisplayUnit)" and emits headerDataChanged() signal for table headers to react. */
 void TransactionTableModel::updateAmountColumnTitle()
 {
-    columns[Amount] = BitcoinUnits::getAmountColumnTitle(walletModel->getOptionsModel()->getDisplayUnit());
+    columns[Amount] = VERGEUnits::getAmountColumnTitle(walletModel->getOptionsModel()->getDisplayUnit());
     Q_EMIT headerDataChanged(Qt::Horizontal,Amount,Amount);
 }
 
@@ -286,6 +287,9 @@ QString TransactionTableModel::formatTxStatus(const TransactionRecord *wtx) cons
     case TransactionStatus::OpenUntilDate:
         status = tr("Open until %1").arg(GUIUtil::dateTimeStr(wtx->status.open_for));
         break;
+    case TransactionStatus::Offline:
+        status = tr("Offline");
+        break;
     case TransactionStatus::Unconfirmed:
         status = tr("Unconfirmed");
         break;
@@ -303,6 +307,9 @@ QString TransactionTableModel::formatTxStatus(const TransactionRecord *wtx) cons
         break;
     case TransactionStatus::Immature:
         status = tr("Immature (%1 confirmations, will be available after %2)").arg(wtx->status.depth).arg(wtx->status.depth + wtx->status.matures_in);
+        break;
+    case TransactionStatus::MaturesWarning:
+        status = tr("This block was not received by any other nodes and will probably not be accepted!");
         break;
     case TransactionStatus::NotAccepted:
         status = tr("Generated but not accepted");
@@ -421,9 +428,9 @@ QVariant TransactionTableModel::addressColor(const TransactionRecord *wtx) const
     return QVariant();
 }
 
-QString TransactionTableModel::formatTxAmount(const TransactionRecord *wtx, bool showUnconfirmed, BitcoinUnits::SeparatorStyle separators) const
+QString TransactionTableModel::formatTxAmount(const TransactionRecord *wtx, bool showUnconfirmed, VERGEUnits::SeparatorStyle separators) const
 {
-    QString str = BitcoinUnits::format(walletModel->getOptionsModel()->getDisplayUnit(), wtx->credit + wtx->debit, false, separators);
+    QString str = VERGEUnits::format(walletModel->getOptionsModel()->getDisplayUnit(), wtx->credit + wtx->debit, false, separators);
     if(showUnconfirmed)
     {
         if(!wtx->status.countsForBalance)
@@ -441,6 +448,8 @@ QVariant TransactionTableModel::txStatusDecoration(const TransactionRecord *wtx)
     case TransactionStatus::OpenUntilBlock:
     case TransactionStatus::OpenUntilDate:
         return COLOR_TX_STATUS_OPENUNTILDATE;
+    case TransactionStatus::Offline:
+        return COLOR_TX_STATUS_OFFLINE;
     case TransactionStatus::Unconfirmed:
         return QIcon(":/icons/transaction_0");
     case TransactionStatus::Abandoned:
@@ -463,6 +472,7 @@ QVariant TransactionTableModel::txStatusDecoration(const TransactionRecord *wtx)
         int part = (wtx->status.depth * 4 / total) + 1;
         return QIcon(QString(":/icons/transaction_%1").arg(part));
         }
+    case TransactionStatus::MaturesWarning:
     case TransactionStatus::NotAccepted:
         return QIcon(":/icons/transaction_0");
     default:
@@ -523,7 +533,7 @@ QVariant TransactionTableModel::data(const QModelIndex &index, int role) const
         case ToAddress:
             return formatTxToAddress(rec, false);
         case Amount:
-            return formatTxAmount(rec, true, BitcoinUnits::separatorAlways);
+            return formatTxAmount(rec, true, VERGEUnits::separatorAlways);
         }
         break;
     case Qt::EditRole:
@@ -613,14 +623,14 @@ QVariant TransactionTableModel::data(const QModelIndex &index, int role) const
                 details.append(QString::fromStdString(rec->address));
                 details.append(" ");
             }
-            details.append(formatTxAmount(rec, false, BitcoinUnits::separatorNever));
+            details.append(formatTxAmount(rec, false, VERGEUnits::separatorNever));
             return details;
         }
     case ConfirmedRole:
         return rec->status.countsForBalance;
     case FormattedAmountRole:
         // Used for copy/export, so don't include separators
-        return formatTxAmount(rec, false, BitcoinUnits::separatorNever);
+        return formatTxAmount(rec, false, VERGEUnits::separatorNever);
     case StatusRole:
         return rec->status.status;
     }

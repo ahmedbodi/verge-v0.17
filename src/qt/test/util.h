@@ -1,5 +1,5 @@
-#ifndef BITCOIN_QT_TEST_UTIL_H
-#define BITCOIN_QT_TEST_UTIL_H
+#ifndef VERGE_QT_TEST_UTIL_H
+#define VERGE_QT_TEST_UTIL_H
 
 /**
  * Press "Ok" button in message box dialog.
@@ -9,4 +9,4 @@
  */
 void ConfirmMessage(QString* text = nullptr, int msec = 0);
 
-#endif // BITCOIN_QT_TEST_UTIL_H
+#endif // VERGE_QT_TEST_UTIL_H

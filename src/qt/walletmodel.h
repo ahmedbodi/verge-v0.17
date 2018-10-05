@@ -1,9 +1,10 @@
-// Copyright (c) 2011-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2017 The Bitcoin Core developers
+// Copyright (c) 2018-2018 The VERGE Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_QT_WALLETMODEL_H
-#define BITCOIN_QT_WALLETMODEL_H
+#ifndef VERGE_QT_WALLETMODEL_H
+#define VERGE_QT_WALLETMODEL_H
 
 #include <amount.h>
 #include <key.h>
@@ -105,7 +106,7 @@ public:
     }
 };
 
-/** Interface to Bitcoin wallet from Qt view code. */
+/** Interface to VERGE wallet from Qt view code. */
 class WalletModel : public QObject
 {
     Q_OBJECT
@@ -197,7 +198,6 @@ public:
     bool bumpFee(uint256 hash);
 
     static bool isWalletEnabled();
-    bool privateKeysDisabled() const;
 
     interfaces::Node& node() const { return m_node; }
     interfaces::Wallet& wallet() const { return *m_wallet; }
@@ -209,7 +209,6 @@ public:
     AddressTableModel* getAddressTableModel() const { return addressTableModel; }
 private:
     std::unique_ptr<interfaces::Wallet> m_wallet;
-    std::unique_ptr<interfaces::Handler> m_handler_unload;
     std::unique_ptr<interfaces::Handler> m_handler_status_changed;
     std::unique_ptr<interfaces::Handler> m_handler_address_book_changed;
     std::unique_ptr<interfaces::Handler> m_handler_transaction_changed;
@@ -263,9 +262,6 @@ Q_SIGNALS:
     // Watch-only address added
     void notifyWatchonlyChanged(bool fHaveWatchonly);
 
-    // Signal that wallet is about to be removed
-    void unload();
-
 public Q_SLOTS:
     /* Wallet status might have changed */
     void updateStatus();
@@ -279,4 +275,4 @@ public Q_SLOTS:
     void pollBalanceChanged();
 };
 
-#endif // BITCOIN_QT_WALLETMODEL_H
+#endif // VERGE_QT_WALLETMODEL_H

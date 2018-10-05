@@ -1,4 +1,5 @@
-// Copyright (c) 2011-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2017 The Bitcoin Core developers
+// Copyright (c) 2018-2018 The VERGE Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -64,7 +65,9 @@ public:
 
             interfaces::Node::NodesStats nodes_stats;
             node.getNodesStats(nodes_stats);
+#if QT_VERSION >= 0x040700
             cachedNodeStats.reserve(nodes_stats.size());
+#endif
             for (auto& node_stats : nodes_stats)
             {
                 CNodeCombinedStats stats;
@@ -160,8 +163,7 @@ QVariant PeerTableModel::data(const QModelIndex &index, int role) const
         case NetNodeId:
             return (qint64)rec->nodeStats.nodeid;
         case Address:
-            // prepend to peer address down-arrow symbol for inbound connection and up-arrow for outbound connection
-            return QString(rec->nodeStats.fInbound ? "↓ " : "↑ ") + QString::fromStdString(rec->nodeStats.addrName);
+            return QString::fromStdString(rec->nodeStats.addrName);
         case Subversion:
             return QString::fromStdString(rec->nodeStats.cleanSubVer);
         case Ping:

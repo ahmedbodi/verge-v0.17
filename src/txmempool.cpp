@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2017 The Bitcoin Core developers
+// Copyright (c) 2018-2018 The VERGE Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -69,12 +70,12 @@ void CTxMemPool::UpdateForDescendants(txiter updateIt, cacheMap &cachedDescendan
         setAllDescendants.insert(cit);
         stageEntries.erase(cit);
         const setEntries &setChildren = GetMemPoolChildren(cit);
-        for (txiter childEntry : setChildren) {
+        for (const txiter childEntry : setChildren) {
             cacheMap::iterator cacheIt = cachedDescendants.find(childEntry);
             if (cacheIt != cachedDescendants.end()) {
                 // We've already calculated this one, just add the entries for this set
                 // but don't traverse again.
-                for (txiter cacheEntry : cacheIt->second) {
+                for (const txiter cacheEntry : cacheIt->second) {
                     setAllDescendants.insert(cacheEntry);
                 }
             } else if (!setAllDescendants.count(childEntry)) {
@@ -151,6 +152,8 @@ void CTxMemPool::UpdateTransactionsFromBlock(const std::vector<uint256> &vHashes
 
 bool CTxMemPool::CalculateMemPoolAncestors(const CTxMemPoolEntry &entry, setEntries &setAncestors, uint64_t limitAncestorCount, uint64_t limitAncestorSize, uint64_t limitDescendantCount, uint64_t limitDescendantSize, std::string &errString, bool fSearchForParents /* = true */) const
 {
+    LOCK(cs);
+
     setEntries parentHashes;
     const CTransaction &tx = entry.GetTx();
 
@@ -282,7 +285,7 @@ void CTxMemPool::UpdateForRemoveFromMempool(const setEntries &entriesToRemove, b
         // should be a bit faster.
         // However, if we happen to be in the middle of processing a reorg, then
         // the mempool can be in an inconsistent state.  In this case, the set
-        // of ancestors reachable via mapLinks will be the same as the set of
+        // of ancestors reachable via mapLinks will be the same as the set of 
         // ancestors whose packages include this transaction, because when we
         // add a new transaction to the mempool in addUnchecked(), we assume it
         // has no children, and in the case of a reorg where that assumption is
@@ -355,12 +358,13 @@ void CTxMemPool::AddTransactionsUpdated(unsigned int n)
     nTransactionsUpdated += n;
 }
 
-void CTxMemPool::addUnchecked(const uint256& hash, const CTxMemPoolEntry &entry, setEntries &setAncestors, bool validFeeEstimate)
+bool CTxMemPool::addUnchecked(const uint256& hash, const CTxMemPoolEntry &entry, setEntries &setAncestors, bool validFeeEstimate)
 {
     NotifyEntryAdded(entry.GetSharedTx());
     // Add to memory pool without checking anything.
     // Used by AcceptToMemoryPool(), which DOES do
     // all the appropriate checks.
+    LOCK(cs);
     indexed_transaction_set::iterator newit = mapTx.insert(entry).first;
     mapLinks.insert(make_pair(newit, TxLinks()));
 
@@ -409,6 +413,8 @@ void CTxMemPool::addUnchecked(const uint256& hash, const CTxMemPoolEntry &entry,
 
     vTxHashes.emplace_back(tx.GetWitnessHash(), newit);
     newit->vTxHashesIdx = vTxHashes.size() - 1;
+
+    return true;
 }
 
 void CTxMemPool::removeUnchecked(txiter it, MemPoolRemovalReason reason)
@@ -537,7 +543,7 @@ void CTxMemPool::removeForReorg(const CCoinsViewCache *pcoins, unsigned int nMem
 void CTxMemPool::removeConflicts(const CTransaction &tx)
 {
     // Remove transactions which depend on inputs of tx, recursively
-    AssertLockHeld(cs);
+    LOCK(cs);
     for (const CTxIn &txin : tx.vin) {
         auto it = mapNextTx.find(txin.prevout);
         if (it != mapNextTx.end()) {
@@ -711,6 +717,7 @@ void CTxMemPool::check(const CCoinsViewCache *pcoins) const
     while (!waitingOnDependants.empty()) {
         const CTxMemPoolEntry* entry = waitingOnDependants.front();
         waitingOnDependants.pop_front();
+        CValidationState state;
         if (!mempoolDuplicate.HaveInputs(entry->GetTx())) {
             waitingOnDependants.push_back(entry);
             stepsSinceLastRemove++;
@@ -928,8 +935,9 @@ int CTxMemPool::Expire(int64_t time) {
     return stage.size();
 }
 
-void CTxMemPool::addUnchecked(const uint256&hash, const CTxMemPoolEntry &entry, bool validFeeEstimate)
+bool CTxMemPool::addUnchecked(const uint256&hash, const CTxMemPoolEntry &entry, bool validFeeEstimate)
 {
+    LOCK(cs);
     setEntries setAncestors;
     uint64_t nNoLimit = std::numeric_limits<uint64_t>::max();
     std::string dummy;

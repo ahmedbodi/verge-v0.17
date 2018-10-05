@@ -1,10 +1,11 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2017 The Bitcoin Core developers
+// Copyright (c) 2018-2018 The VERGE Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_PRIMITIVES_TRANSACTION_H
-#define BITCOIN_PRIMITIVES_TRANSACTION_H
+#ifndef VERGE_PRIMITIVES_TRANSACTION_H
+#define VERGE_PRIMITIVES_TRANSACTION_H
 
 #include <stdint.h>
 #include <amount.h>
@@ -155,6 +156,12 @@ public:
         scriptPubKey.clear();
     }
 
+    void SetEmpty()
+    {
+        nValue = 0;
+        scriptPubKey.clear();
+    }
+
     bool IsNull() const
     {
         return (nValue == -1);
@@ -198,6 +205,9 @@ inline void UnserializeTransaction(TxType& tx, Stream& s) {
     const bool fAllowWitness = !(s.GetVersion() & SERIALIZE_TRANSACTION_NO_WITNESS);
 
     s >> tx.nVersion;
+    s >> tx.nTime;
+    //if (tx.nTime < 1507311610 || tx.nTime > 1540188138) // deprecated
+    //s.Rewind(sizeof(uint32_t));
     unsigned char flags = 0;
     tx.vin.clear();
     tx.vout.clear();
@@ -233,6 +243,8 @@ inline void SerializeTransaction(const TxType& tx, Stream& s) {
     const bool fAllowWitness = !(s.GetVersion() & SERIALIZE_TRANSACTION_NO_WITNESS);
 
     s << tx.nVersion;
+    //if (tx.nTime > 1507311610 && tx.nTime < 1540188138) // deprecated
+    s << tx.nTime;
     unsigned char flags = 0;
     // Consistency check
     if (fAllowWitness) {
@@ -257,7 +269,6 @@ inline void SerializeTransaction(const TxType& tx, Stream& s) {
     s << tx.nLockTime;
 }
 
-
 /** The basic transaction that is broadcasted on the network and contained in
  * blocks.  A transaction can contain multiple inputs and outputs.
  */
@@ -265,13 +276,13 @@ class CTransaction
 {
 public:
     // Default transaction version.
-    static const int32_t CURRENT_VERSION=2;
+    static const int32_t CURRENT_VERSION=1;
 
     // Changing the default transaction version requires a two step process: first
     // adapting relay policy by bumping MAX_STANDARD_VERSION, and then later date
     // bumping the default CURRENT_VERSION at which point both CURRENT_VERSION and
     // MAX_STANDARD_VERSION will be equal.
-    static const int32_t MAX_STANDARD_VERSION=2;
+    static const int32_t MAX_STANDARD_VERSION=3;
 
     // The local variables are made const to prevent unintended modification
     // without updating the cached hash value. However, CTransaction is not
@@ -281,6 +292,7 @@ public:
     const std::vector<CTxIn> vin;
     const std::vector<CTxOut> vout;
     const int32_t nVersion;
+    const uint32_t nTime;
     const uint32_t nLockTime;
 
 private:
@@ -362,6 +374,7 @@ struct CMutableTransaction
     std::vector<CTxIn> vin;
     std::vector<CTxOut> vout;
     int32_t nVersion;
+    uint32_t nTime;
     uint32_t nLockTime;
 
     CMutableTransaction();
@@ -403,4 +416,4 @@ typedef std::shared_ptr<const CTransaction> CTransactionRef;
 static inline CTransactionRef MakeTransactionRef() { return std::make_shared<const CTransaction>(); }
 template <typename Tx> static inline CTransactionRef MakeTransactionRef(Tx&& txIn) { return std::make_shared<const CTransaction>(std::forward<Tx>(txIn)); }
 
-#endif // BITCOIN_PRIMITIVES_TRANSACTION_H
+#endif // VERGE_PRIMITIVES_TRANSACTION_H

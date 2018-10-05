@@ -1,4 +1,5 @@
-// Copyright (c) 2011-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2017 The Bitcoin Core developers
+// Copyright (c) 2018-2018 The VERGE Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -52,7 +53,9 @@ public:
         node.getBanned(banMap);
 
         cachedBanlist.clear();
+#if QT_VERSION >= 0x040700
         cachedBanlist.reserve(banMap.size());
+#endif
         for (const auto& entry : banMap)
         {
             CCombinedBan banEntry;

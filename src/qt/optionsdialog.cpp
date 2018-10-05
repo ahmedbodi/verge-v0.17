@@ -1,15 +1,16 @@
-// Copyright (c) 2011-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2017 The Bitcoin Core developers
+// Copyright (c) 2018-2018 The VERGE Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
+#include <config/verge-config.h>
 #endif
 
 #include <qt/optionsdialog.h>
 #include <qt/forms/ui_optionsdialog.h>
 
-#include <qt/bitcoinunits.h>
+#include <qt/vergeunits.h>
 #include <qt/guiutil.h>
 #include <qt/optionsmodel.h>
 
@@ -83,10 +84,10 @@ OptionsDialog::OptionsDialog(QWidget *parent, bool enableWallet) :
     /* Display elements init */
     QDir translations(":translations");
 
-    ui->bitcoinAtStartup->setToolTip(ui->bitcoinAtStartup->toolTip().arg(tr(PACKAGE_NAME)));
-    ui->bitcoinAtStartup->setText(ui->bitcoinAtStartup->text().arg(tr(PACKAGE_NAME)));
+    ui->vergeAtStartup->setToolTip(ui->vergeAtStartup->toolTip().arg(tr(PACKAGE_NAME)));
+    ui->vergeAtStartup->setText(ui->vergeAtStartup->text().arg(tr(PACKAGE_NAME)));
 
-    ui->openBitcoinConfButton->setToolTip(ui->openBitcoinConfButton->toolTip().arg(tr(PACKAGE_NAME)));
+    ui->openVERGEConfButton->setToolTip(ui->openVERGEConfButton->toolTip().arg(tr(PACKAGE_NAME)));
 
     ui->lang->setToolTip(ui->lang->toolTip().arg(tr(PACKAGE_NAME)));
     ui->lang->addItem(QString("(") + tr("default") + QString(")"), QVariant(""));
@@ -97,27 +98,35 @@ OptionsDialog::OptionsDialog(QWidget *parent, bool enableWallet) :
         /** check if the locale name consists of 2 parts (language_country) */
         if(langStr.contains("_"))
         {
+#if QT_VERSION >= 0x040800
             /** display language strings as "native language - native country (locale name)", e.g. "Deutsch - Deutschland (de)" */
             ui->lang->addItem(locale.nativeLanguageName() + QString(" - ") + locale.nativeCountryName() + QString(" (") + langStr + QString(")"), QVariant(langStr));
+#else
+            /** display language strings as "language - country (locale name)", e.g. "German - Germany (de)" */
+            ui->lang->addItem(QLocale::languageToString(locale.language()) + QString(" - ") + QLocale::countryToString(locale.country()) + QString(" (") + langStr + QString(")"), QVariant(langStr));
+#endif
         }
         else
         {
+#if QT_VERSION >= 0x040800
             /** display language strings as "native language (locale name)", e.g. "Deutsch (de)" */
             ui->lang->addItem(locale.nativeLanguageName() + QString(" (") + langStr + QString(")"), QVariant(langStr));
+#else
+            /** display language strings as "language (locale name)", e.g. "German (de)" */
+            ui->lang->addItem(QLocale::languageToString(locale.language()) + QString(" (") + langStr + QString(")"), QVariant(langStr));
+#endif
         }
     }
+#if QT_VERSION >= 0x040700
     ui->thirdPartyTxUrls->setPlaceholderText("https://example.com/tx/%s");
+#endif
 
-    ui->unit->setModel(new BitcoinUnits(this));
+    ui->unit->setModel(new VERGEUnits(this));
 
     /* Widget-to-option mapper */
     mapper = new QDataWidgetMapper(this);
     mapper->setSubmitPolicy(QDataWidgetMapper::ManualSubmit);
     mapper->setOrientation(Qt::Vertical);
-
-    GUIUtil::ItemDelegate* delegate = new GUIUtil::ItemDelegate(mapper);
-    connect(delegate, &GUIUtil::ItemDelegate::keyEscapePressed, this, &OptionsDialog::reject);
-    mapper->setItemDelegate(delegate);
 
     /* setup/change UI elements when proxy IPs are invalid/valid */
     ui->proxyIp->setCheckValidator(new ProxyAddressValidator(parent));
@@ -177,7 +186,7 @@ void OptionsDialog::setModel(OptionsModel *_model)
 void OptionsDialog::setMapper()
 {
     /* Main */
-    mapper->addMapping(ui->bitcoinAtStartup, OptionsModel::StartAtStartup);
+    mapper->addMapping(ui->vergeAtStartup, OptionsModel::StartAtStartup);
     mapper->addMapping(ui->threadsScriptVerif, OptionsModel::ThreadsScriptVerif);
     mapper->addMapping(ui->databaseCache, OptionsModel::DatabaseCache);
     mapper->addMapping(ui->prune, OptionsModel::Prune);
@@ -235,7 +244,7 @@ void OptionsDialog::on_resetButton_clicked()
     }
 }
 
-void OptionsDialog::on_openBitcoinConfButton_clicked()
+void OptionsDialog::on_openVERGEConfButton_clicked()
 {
     /* explain the purpose of the config file */
     QMessageBox::information(this, tr("Configuration options"),
@@ -243,7 +252,7 @@ void OptionsDialog::on_openBitcoinConfButton_clicked()
            "Additionally, any command-line options will override this configuration file."));
 
     /* show an error if there was some problem opening the file */
-    if (!GUIUtil::openBitcoinConf())
+    if (!GUIUtil::openVERGEConf())
         QMessageBox::critical(this, tr("Error"), tr("The configuration file could not be opened."));
 }
 
@@ -335,7 +344,7 @@ void OptionsDialog::updateDefaultProxyNets()
     strDefaultProxyGUI = ui->proxyIp->text() + ":" + ui->proxyPort->text();
     (strProxy == strDefaultProxyGUI.toStdString()) ? ui->proxyReachIPv6->setChecked(true) : ui->proxyReachIPv6->setChecked(false);
 
-    model->node().getProxy(NET_ONION, proxy);
+    model->node().getProxy(NET_TOR, proxy);
     strProxy = proxy.proxy.ToStringIP() + ":" + proxy.proxy.ToStringPort();
     strDefaultProxyGUI = ui->proxyIp->text() + ":" + ui->proxyPort->text();
     (strProxy == strDefaultProxyGUI.toStdString()) ? ui->proxyReachTor->setChecked(true) : ui->proxyReachTor->setChecked(false);

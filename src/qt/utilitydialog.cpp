@@ -1,16 +1,17 @@
-// Copyright (c) 2011-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2017 The Bitcoin Core developers
+// Copyright (c) 2018-2018 The VERGE Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
+#include <config/verge-config.h>
 #endif
 
 #include <qt/utilitydialog.h>
 
 #include <qt/forms/ui_helpmessagedialog.h>
 
-#include <qt/bitcoingui.h>
+#include <qt/vergegui.h>
 #include <qt/clientmodel.h>
 #include <qt/guiconstants.h>
 #include <qt/intro.h>
@@ -70,7 +71,8 @@ HelpMessageDialog::HelpMessageDialog(interfaces::Node& node, QWidget *parent, bo
         ui->helpMessage->setVisible(false);
     } else {
         setWindowTitle(tr("Command-line options"));
-        QString header = "Usage:  bitcoin-qt [command-line options]                     \n";
+        QString header = "Usage:\n"
+            "  verge-qt [command-line options]                     \n";
         QTextCursor cursor(ui->helpMessage->document());
         cursor.insertText(version);
         cursor.insertBlock();
@@ -79,7 +81,7 @@ HelpMessageDialog::HelpMessageDialog(interfaces::Node& node, QWidget *parent, bo
 
         std::string strUsage = gArgs.GetHelpMessage();
         QString coreOptions = QString::fromStdString(strUsage);
-        text = version + "\n\n" + header + "\n" + coreOptions;
+        text = version + "\n" + header + "\n" + coreOptions;
 
         QTextTableFormat tf;
         tf.setBorderStyle(QTextFrameFormat::BorderStyle_None);
@@ -157,7 +159,7 @@ ShutdownWindow::ShutdownWindow(QWidget *parent, Qt::WindowFlags f):
     setLayout(layout);
 }
 
-QWidget *ShutdownWindow::showShutdownWindow(BitcoinGUI *window)
+QWidget *ShutdownWindow::showShutdownWindow(VERGEGUI *window)
 {
     if (!window)
         return nullptr;

@@ -1,4 +1,5 @@
-// Copyright (c) 2012-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2017 The Bitcoin Core developers
+// Copyright (c) 2018-2018 The VERGE Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -12,7 +13,7 @@
 #include <script/script_error.h>
 #include <script/sign.h>
 #include <script/ismine.h>
-#include <test/test_bitcoin.h>
+#include <test/test_verge.h>
 
 #include <vector>
 
@@ -309,7 +310,7 @@ BOOST_AUTO_TEST_CASE(AreInputsStandard)
     // vout[5/6] are non-standard because they exceed MAX_P2SH_SIGOPS
     CScript sixteenSigops; sixteenSigops << OP_16 << OP_CHECKMULTISIG;
     keystore.AddCScript(sixteenSigops);
-    txFrom.vout[5].scriptPubKey = GetScriptForDestination(CScriptID(sixteenSigops));
+    txFrom.vout[5].scriptPubKey = GetScriptForDestination(CScriptID(fifteenSigops));
     txFrom.vout[5].nValue = 5000;
     CScript twentySigops; twentySigops << OP_CHECKMULTISIG;
     keystore.AddCScript(twentySigops);

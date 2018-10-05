@@ -1,9 +1,10 @@
-// Copyright (c) 2015-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2017 The Bitcoin Core developers
+// Copyright (c) 2018-2018 The VERGE Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_ZMQ_ZMQABSTRACTNOTIFIER_H
-#define BITCOIN_ZMQ_ZMQABSTRACTNOTIFIER_H
+#ifndef VERGE_ZMQ_ZMQABSTRACTNOTIFIER_H
+#define VERGE_ZMQ_ZMQABSTRACTNOTIFIER_H
 
 #include <zmq/zmqconfig.h>
 
@@ -41,4 +42,4 @@ protected:
     std::string address;
 };
 
-#endif // BITCOIN_ZMQ_ZMQABSTRACTNOTIFIER_H
+#endif // VERGE_ZMQ_ZMQABSTRACTNOTIFIER_H

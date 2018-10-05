@@ -267,14 +267,6 @@ void Shutdown()
     }
     g_wallet_init_interface.Stop();
 
-#if ENABLE_ZMQ
-    if (g_zmq_notification_interface) {
-        UnregisterValidationInterface(g_zmq_notification_interface);
-        delete g_zmq_notification_interface;
-        g_zmq_notification_interface = nullptr;
-    }
-#endif
-
 #ifndef WIN32
     try {
         fs::remove(GetPidFile());
@@ -1395,13 +1387,6 @@ bool AppInitMain()
             return InitError(ResolveErrMsg("externalip", strAddr));
     }
 
-#if ENABLE_ZMQ
-    g_zmq_notification_interface = CZMQNotificationInterface::Create();
-
-    if (g_zmq_notification_interface) {
-        RegisterValidationInterface(g_zmq_notification_interface);
-    }
-#endif
     uint64_t nMaxOutboundLimit = 0; //unlimited unless -maxuploadtarget is set
     uint64_t nMaxOutboundTimeframe = MAX_UPLOAD_TIMEFRAME;
 

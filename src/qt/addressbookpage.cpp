@@ -1,16 +1,17 @@
-// Copyright (c) 2011-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2017 The Bitcoin Core developers
+// Copyright (c) 2018-2018 The VERGE Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
+#include <config/verge-config.h>
 #endif
 
 #include <qt/addressbookpage.h>
 #include <qt/forms/ui_addressbookpage.h>
 
 #include <qt/addresstablemodel.h>
-#include <qt/bitcoingui.h>
+#include <qt/vergegui.h>
 #include <qt/csvmodelwriter.h>
 #include <qt/editaddressdialog.h>
 #include <qt/guiutil.h>
@@ -102,12 +103,12 @@ AddressBookPage::AddressBookPage(const PlatformStyle *platformStyle, Mode _mode,
     switch(tab)
     {
     case SendingTab:
-        ui->labelExplanation->setText(tr("These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins."));
+        ui->labelExplanation->setText(tr("These are your VERGE addresses for sending payments. Always check the amount and the receiving address before sending coins."));
         ui->deleteAddress->setVisible(true);
         ui->newAddress->setVisible(true);
         break;
     case ReceivingTab:
-        ui->labelExplanation->setText(tr("These are your Bitcoin addresses for receiving payments. It is recommended to use a new receiving address for each transaction."));
+        ui->labelExplanation->setText(tr("These are your VERGE addresses for receiving payments. It is recommended to use a new receiving address for each transaction."));
         ui->deleteAddress->setVisible(false);
         ui->newAddress->setVisible(false);
         break;
@@ -160,8 +161,13 @@ void AddressBookPage::setModel(AddressTableModel *_model)
     ui->tableView->sortByColumn(0, Qt::AscendingOrder);
 
     // Set column widths
+#if QT_VERSION < 0x050000
+    ui->tableView->horizontalHeader()->setResizeMode(AddressTableModel::Label, QHeaderView::Stretch);
+    ui->tableView->horizontalHeader()->setResizeMode(AddressTableModel::Address, QHeaderView::ResizeToContents);
+#else
     ui->tableView->horizontalHeader()->setSectionResizeMode(AddressTableModel::Label, QHeaderView::Stretch);
     ui->tableView->horizontalHeader()->setSectionResizeMode(AddressTableModel::Address, QHeaderView::ResizeToContents);
+#endif
 
     connect(ui->tableView->selectionModel(), SIGNAL(selectionChanged(QItemSelection,QItemSelection)),
         this, SLOT(selectionChanged()));

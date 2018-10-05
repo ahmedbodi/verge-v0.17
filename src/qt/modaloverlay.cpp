@@ -1,4 +1,5 @@
-// Copyright (c) 2016-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2017 The Bitcoin Core developers
+// Copyright (c) 2018-2018 The VERGE Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -104,7 +105,7 @@ void ModalOverlay::tipUpdate(int count, const QDateTime& blockDate, double nVeri
         ui->progressIncreasePerH->setText(QString::number(progressPerHour * 100, 'f', 2)+"%");
 
         // show expected remaining time
-        if(remainingMSecs >= 0) {
+        if(remainingMSecs >= 0) {	
             ui->expectedTimeLeft->setText(GUIUtil::formatNiceTimeOffset(remainingMSecs / 1000.0));
         } else {
             ui->expectedTimeLeft->setText(QObject::tr("unknown"));
@@ -129,7 +130,7 @@ void ModalOverlay::tipUpdate(int count, const QDateTime& blockDate, double nVeri
 
     // estimate the number of headers left based on nPowTargetSpacing
     // and check if the gui is not aware of the best header (happens rarely)
-    int estimateNumHeadersLeft = bestHeaderDate.secsTo(currentDate) / Params().GetConsensus().nPowTargetSpacing;
+    int estimateNumHeadersLeft = bestHeaderDate.secsTo(currentDate) / Params().GetConsensus().nPowTargetSpacing; // Is fine as a 'bad' estimate
     bool hasBestHeader = bestHeaderHeight >= count;
 
     // show remaining number of blocks

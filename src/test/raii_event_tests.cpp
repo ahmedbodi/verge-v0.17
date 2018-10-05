@@ -1,4 +1,5 @@
-// Copyright (c) 2016-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2017 The Bitcoin Core developers
+// Copyright (c) 2018-2018 The VERGE Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -12,7 +13,7 @@
 
 #include <support/events.h>
 
-#include <test/test_bitcoin.h>
+#include <test/test_verge.h>
 
 #include <vector>
 
@@ -41,7 +42,7 @@ BOOST_FIXTURE_TEST_SUITE(raii_event_tests, BasicTestingSetup)
 BOOST_AUTO_TEST_CASE(raii_event_creation)
 {
     event_set_mem_functions(tag_malloc, realloc, tag_free);
-
+    
     void* base_ptr = nullptr;
     {
         auto base = obtain_event_base();
@@ -49,7 +50,7 @@ BOOST_AUTO_TEST_CASE(raii_event_creation)
         BOOST_CHECK(tags[base_ptr] == 1);
     }
     BOOST_CHECK(tags[base_ptr] == 0);
-
+    
     void* event_ptr = nullptr;
     {
         auto base = obtain_event_base();
@@ -63,14 +64,14 @@ BOOST_AUTO_TEST_CASE(raii_event_creation)
     }
     BOOST_CHECK(tags[base_ptr] == 0);
     BOOST_CHECK(tags[event_ptr] == 0);
-
+    
     event_set_mem_functions(malloc, realloc, free);
 }
 
 BOOST_AUTO_TEST_CASE(raii_event_order)
 {
     event_set_mem_functions(tag_malloc, realloc, tag_free);
-
+    
     void* base_ptr = nullptr;
     void* event_ptr = nullptr;
     {

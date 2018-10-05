@@ -23,6 +23,7 @@ enum Network
     NET_IPV4,
     NET_IPV6,
     NET_ONION,
+    NET_TOR,
     NET_INTERNAL,
 
     NET_MAX,
